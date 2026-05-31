@@ -135,7 +135,7 @@ struct VPNConfigView: View {
 
         do {
             try await vpn.configure(server: server.server, remoteId: server.remoteId)
-            try await vpn.connect()
+            try vpn.connect()
         } catch {
             errorMessage = error.localizedDescription
             showError = true

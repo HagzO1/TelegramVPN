@@ -62,9 +62,8 @@ class VPNManager: ObservableObject {
         try await manager.saveToPreferences()
     }
 
-    func connect() async throws {
-        try await manager.loadFromPreferences()
-        try manager.connection.startVPNToggle()
+    func connect() throws {
+        try manager.connection.startVPNTunnel()
     }
 
     func disconnect() {

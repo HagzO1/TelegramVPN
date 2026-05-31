@@ -21,7 +21,7 @@ enum ProxyChecker {
                     let latency = Date().timeIntervalSince(start)
                     connection.cancel()
                     continuation.resume(returning: latency)
-                case .failed(let error):
+                case .failed:
                     didResume = true
                     connection.cancel()
                     continuation.resume(returning: -1)
