@@ -1,0 +1,43 @@
+name: Build IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build archive
+        run: |
+          xcodebuild archive \
+            -project TelegramVPN.xcodeproj \
+            -scheme TelegramVPN \
+            -configuration Release \
+            -archivePath build/TelegramVPN.xcarchive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Export IPA
+        run: |
+          mkdir -p build/ipa
+          xcodebuild -exportArchive \
+            -archivePath build/TelegramVPN.xcarchive \
+            -exportPath build/ipa \
+            -exportOptionsPlist ExportOptions.plist
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: TelegramVPN-ipa
+          path: build/ipa/TelegramVPN.ipa
