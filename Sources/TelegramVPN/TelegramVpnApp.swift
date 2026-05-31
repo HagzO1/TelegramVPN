@@ -4,7 +4,17 @@ import SwiftUI
 struct TelegramVpnApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            TabView {
+                ContentView()
+                    .tabItem {
+                        Label("Прокси", systemImage: "point.3.connected.trianglepath.dotted")
+                    }
+
+                VPNConfigView()
+                    .tabItem {
+                        Label("VPN", systemImage: "lock.shield")
+                    }
+            }
         }
     }
 }

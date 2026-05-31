@@ -25,3 +25,6 @@ targets:
         CODE_SIGN_STYLE: Automatic
     info:
       path: Sources/TelegramVPN/Info.plist
+    dependencies:
+      - framework: NetworkExtension.framework
+        embed: false
