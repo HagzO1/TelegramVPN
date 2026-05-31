@@ -153,24 +153,30 @@ class ProxyViewModel: ObservableObject {
 
     func checkProxy(_ proxy: Proxy) async {
         guard let idx = proxies.firstIndex(where: { $0.id == proxy.id }) else { return }
-        let latency = await service.checkProxy(proxy)
+        let latency = await ProxyChecker.check(proxy)
         proxies[idx].latency = latency
     }
 
     func checkAllProxies() async {
         isChecking = true
-        await withTaskGroup(of: (Int, TimeInterval).self) { group in
-            for (idx, proxy) in proxies.enumerated() {
+        let currentProxies = proxies
+        let results = await withTaskGroup(of: (Int, TimeInterval).self) { group in
+            for (idx, proxy) in currentProxies.enumerated() {
                 group.addTask {
-                    let latency = await self.service.checkProxy(proxy)
+                    let latency = await ProxyChecker.check(proxy)
                     return (idx, latency)
                 }
             }
 
-            for await (idx, latency) in group {
-                if idx < proxies.count {
-                    proxies[idx].latency = latency
-                }
+            var collected: [(Int, TimeInterval)] = []
+            for await result in group {
+                collected.append(result)
+            }
+            return collected
+        }
+        for (idx, latency) in results {
+            if idx < proxies.count {
+                proxies[idx].latency = latency
             }
         }
         isChecking = false

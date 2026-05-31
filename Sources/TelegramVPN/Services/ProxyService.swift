@@ -1,6 +1,57 @@
 import Foundation
 import UIKit
 
+enum ProxyChecker {
+    static func check(_ proxy: Proxy) async -> TimeInterval {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global().async {
+                let start = Date()
+
+                var addr = sockaddr_in()
+                addr.sin_family = sa_family_t(AF_INET)
+                addr.sin_port = CFSwapInt16HostToBig(UInt16(proxy.port))
+
+                guard let host = CFHostCreateWithName(nil, proxy.server as CFString).takeRetainedValue() as CFHost? else {
+                    continuation.resume(returning: -1)
+                    return
+                }
+
+                var resolved = DarwinBoolean(false)
+                CFHostStartInfoResolution(host, .addresses, nil)
+                guard let addresses = CFHostGetAddressing(host, &resolved)?.takeUnretainedValue() as? [Data],
+                      let firstAddress = addresses.first else {
+                    continuation.resume(returning: -1)
+                    return
+                }
+
+                firstAddress.withUnsafeBytes { ptr in
+                    guard let base = ptr.baseAddress else { return }
+                    memcpy(&addr, base, MemoryLayout<sockaddr_in>.size)
+                }
+                addr.sin_port = CFSwapInt16HostToBig(UInt16(proxy.port))
+
+                let sock = socket(AF_INET, SOCK_STREAM, 0)
+                guard sock >= 0 else { continuation.resume(returning: -1); return }
+
+                var timeVal = timeval(tv_sec: 3, tv_usec: 0)
+                setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &timeVal, socklen_t(MemoryLayout<timeval>.size))
+                setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timeVal, socklen_t(MemoryLayout<timeval>.size))
+
+                let connectResult = withUnsafePointer(to: &addr) {
+                    $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                        Darwin.connect(sock, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
+                    }
+                }
+
+                close(sock)
+
+                guard connectResult == 0 else { continuation.resume(returning: -1); return }
+                continuation.resume(returning: Date().timeIntervalSince(start))
+            }
+        }
+    }
+}
+
 actor ProxyService {
     static let shared = ProxyService()
 
@@ -29,44 +80,6 @@ actor ProxyService {
                 }
             }
         }
-    }
-
-    func checkProxy(_ proxy: Proxy) async -> TimeInterval {
-        let start = Date()
-        guard let host = CFHostCreateWithName(nil, proxy.server as CFString).takeRetainedValue() as CFHost? else {
-            return -1
-        }
-
-        var resolved = DarwinBoolean(false)
-        CFHostStartInfoResolution(host, .addresses, nil)
-        guard let addresses = CFHostGetAddressing(host, &resolved)?.takeUnretainedValue() as? [Data],
-              let firstAddress = addresses.first else {
-            return -1
-        }
-
-        var addr = sockaddr_in()
-        firstAddress.withUnsafeBytes { ptr in
-            guard let base = ptr.baseAddress else { return }
-            memcpy(&addr, base, MemoryLayout<sockaddr_in>.size)
-        }
-
-        let sock = socket(AF_INET, SOCK_STREAM, 0)
-        guard sock >= 0 else { return -1 }
-
-        var timeVal = timeval(tv_sec: 5, tv_usec: 0)
-        setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &timeVal, socklen_t(MemoryLayout<timeval>.size))
-
-        addr.sin_port = CFSwapInt16HostToBig(UInt16(proxy.port))
-        let connectResult = withUnsafePointer(to: &addr) {
-            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                Darwin.connect(sock, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
-            }
-        }
-
-        close(sock)
-
-        guard connectResult == 0 else { return -1 }
-        return Date().timeIntervalSince(start)
     }
 
     func loadProxies() -> [Proxy] {
