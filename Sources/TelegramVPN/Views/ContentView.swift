@@ -141,7 +141,7 @@ class ProxyViewModel: ObservableObject {
     }
 
     func loadProxies() async {
-        proxies = await service.loadProxies()
+        proxies = await service.getProxies()
         await checkAllProxies()
     }
 
@@ -183,7 +183,7 @@ class ProxyViewModel: ObservableObject {
     }
 
     func refreshProxies() async {
-        proxies = await service.loadProxies()
+        proxies = await service.getProxies()
         await checkAllProxies()
     }
 }
