@@ -1,6 +1,7 @@
 name: TelegramVPN
 options:
   bundleIdPrefix: com.telegramvpn
+  xcodeVersion: "16.0"
   deploymentTarget:
     iOS: "16.0"
 
