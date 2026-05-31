@@ -17,24 +17,25 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
-      - name: Build archive
+      - name: Build app
         run: |
-          xcodebuild archive \
+          xcodebuild build \
             -project TelegramVPN.xcodeproj \
             -scheme TelegramVPN \
             -configuration Release \
-            -archivePath build/TelegramVPN.xcarchive \
+            -sdk iphoneos \
+            -derivedDataPath build/DerivedData \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
 
-      - name: Export IPA
+      - name: Create unsigned IPA
         run: |
-          mkdir -p build/ipa
-          xcodebuild -exportArchive \
-            -archivePath build/TelegramVPN.xcarchive \
-            -exportPath build/ipa \
-            -exportOptionsPlist ExportOptions.plist
+          mkdir -p build/ipa/Payload
+          cp -R "build/DerivedData/Build/Products/Release-iphoneos/TelegramVPN.app" "build/ipa/Payload/"
+          cd build/ipa
+          zip -r TelegramVPN.ipa Payload/
+          rm -rf Payload
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
