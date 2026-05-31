@@ -1,7 +1,7 @@
 import Foundation
 
 struct Proxy: Identifiable, Codable {
-    let id = UUID()
+    var id = UUID()
     let server: String
     let port: Int
     let secret: String

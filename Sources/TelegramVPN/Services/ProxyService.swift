@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 actor ProxyService {
     static let shared = ProxyService()
@@ -19,9 +20,9 @@ actor ProxyService {
         Proxy(server: "185.126.255.1", port: 443, secret: "eeef0a6b0f3130303d30ad871b1cf4e1b4b2656f72616e67652e636f6d", title: "Proxy 10 🇷🇺", country: "Russia"),
     ]
 
-    func connect(to proxy: Proxy) {
+    func connect(to proxy: Proxy) async {
         guard let url = proxy.tgUrl else { return }
-        DispatchQueue.main.async {
+        await MainActor.run {
             UIApplication.shared.open(url, options: [:]) { success in
                 if !success {
                     print("Не удалось открыть Telegram. Убедитесь, что Telegram установлен.")

@@ -146,7 +146,9 @@ class ProxyViewModel: ObservableObject {
     }
 
     func connect(to proxy: Proxy) {
-        service.connect(to: proxy)
+        Task {
+            await service.connect(to: proxy)
+        }
     }
 
     func checkProxy(_ proxy: Proxy) async {
